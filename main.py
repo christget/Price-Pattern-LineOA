@@ -98,6 +98,7 @@ async def callback(request: Request):
 
 @handler.add(MessageEvent, message=TextMessageContent)
 def handle_message(event):
+    user_id = event.source.user_id
     text = event.message.text
     try:
         words_list = text.split(", ")
@@ -116,7 +117,7 @@ def handle_message(event):
         getImage = get_image(priceData)
         image, predict = pattern_detect(source=getImage)
 
-        handle_prediction_result(event, predict)
+        handle_prediction_result(user_id, predict)
     except Exception as e:
         print(e)
         handle_error_message(event)
@@ -147,28 +148,19 @@ def handle_waiting_message(event):
             )
         )
 
-def handle_prediction_result(event, predict):
+def handle_prediction_result(user_id, predict):
     with ApiClient(configuration) as api_client:
         line_bot_api = MessagingApi(api_client)
-        line_bot_api.reply_message_with_http_info(
-            ReplyMessageRequest(
-                reply_token=event.reply_token,
-                messages=[TextMessage(text=str(predict))]
-            )
-        )
+        line_bot_api.send_message(user_id, TextMessage(text=predict))
 
-def handle_error_message(event):
+def handle_error_message(user_id):
     start_word = ['อุ๊ปส์!', 'Ops!']
     response_word = random.choice(start_word) + " ระบบเกิดข้อผิดพลาด โปรดลองใหม่ภายหลัง 😵‍💫"
 
     with ApiClient(configuration) as api_client:
         line_bot_api = MessagingApi(api_client)
-        line_bot_api.reply_message_with_http_info(
-            ReplyMessageRequest(
-                reply_token=event.reply_token,
-                messages=[TextMessage(text=response_word)]
-            )
-        )
+        line_bot_api.send_message(user_id, TextMessage(text=response_word))
+    
 # @handler.add(MessageEvent, message=TextMessageContent)
 # def handle_message(event):
 #     text = event.message.text
