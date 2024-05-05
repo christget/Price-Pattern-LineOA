@@ -151,7 +151,7 @@ def handle_waiting_message(event):
 def handle_prediction_result(user_id, predict):
     with ApiClient(configuration) as api_client:
         line_bot_api = MessagingApi(api_client)
-        line_bot_api.send_message(user_id, TextMessage(text=predict))
+        line_bot_api.push_message(user_id, TextMessage(text=predict))
 
 def handle_error_message(user_id):
     start_word = ['อุ๊ปส์!', 'Ops!']
@@ -159,7 +159,7 @@ def handle_error_message(user_id):
 
     with ApiClient(configuration) as api_client:
         line_bot_api = MessagingApi(api_client)
-        line_bot_api.send_message(user_id, TextMessage(text=response_word))
+        line_bot_api.push_message(user_id, TextMessage(text=response_word))
     
 # @handler.add(MessageEvent, message=TextMessageContent)
 # def handle_message(event):
