@@ -5,7 +5,7 @@ import os
 import random
 import time
 from pathlib import Path
-import tempfile
+from tempfile import NamedTemporaryFile
 import cv2
 import errno
 import base64
@@ -135,7 +135,6 @@ def handle_message(event):
     except Exception:
         start_word = ['สวัสดีหัวไหล่ ','Hello There']
         response_word = random.choice(start_word) + "😎 ส่งข้อความเข้ามารูปแบบดังนี้ aapl, 2023-09-01, 2023-10-01, 1h"
-
         with ApiClient(configuration) as api_client:
             line_bot_api = MessagingApi(api_client)
             line_bot_api.reply_message_with_http_info(
@@ -145,58 +144,39 @@ def handle_message(event):
                 )
             )
 
-# @handler.add(MessageEvent, message=TextMessageContent)
-# def handle_message(event):
-    
-    ## event.message.text คือข้อความที่เขาพิมพ์มา
-    # text = event.message.text
-    # try:
-    #     words_list = text.split(", ")
-    #     sym = words_list[0].upper()
-    #     start = words_list[1]
-    #     end = words_list[2]
-    #     tf = words_list[3]
-    # except Exception:
-    #     start_word = ['สวัสดีหัวไหล่ ','Hello There']
-    #     response_word = random.choice(start_word) + "😎 ส่งข้อความเข้ามารูปแบบดังนี้ aapl, 2023-09-01, 2023-10-01, 1h"
-    #     messaging_api.reply_message(
-    #         ReplyMessageRequest(
-    #             reply_token=event.reply_token,
-    #             messages=[TextMessage(text=response_word)]
-    #         )
-    #     )
-        # with ApiClient(configuration) as api_clients:
-        #     line_bot_api = MessagingApi(api_clients)
-        #     messages = [TextMessage(text=response_word)]
-        #     line_bot_api.reply_message_with_http_info(
-        #         ReplyMessageRequest(
-        #             replyToken= event.reply_token,
-        #             messages= messages
-        #         )
-        #     )
-            
-    # try:
-    #     priceData = price_data(ticker=sym, start_date=start, end_date=end, timeframe=tf)
-    #     getImage = get_image(priceData)
-    #     image, predict = pattern_detect(source=getImage)
-    # except Exception:
-    #     start_word = ['อุ๊ปส​์!','Ops!']
-    #     response_word = random.choice(start_word) + " ระบบเกิดข้อผิดพลาด โปรดลองใหม่ภายหลัง 😵‍💫"
-    #     messaging_api.reply_message(
-    #         ReplyMessageRequest(
-    #             reply_token=event.reply_token,
-    #             messages=[TextMessage(text=response_word)]
-    #         )
-    #     )
-        # with ApiClient(configuration) as api_clients:
-        #     line_bot_api = MessagingApi(api_clients)
-        #     messages = [TextMessage(text=response_word)]
-        #     line_bot_api.reply_message_with_http_info(
-        #         ReplyMessageRequest(
-        #             replyToken= event.reply_token,
-        #             messages= messages
-        #         )
-        #     )
+
+    try:
+        priceData = price_data(ticker=sym, start_date=start, end_date=end, timeframe=tf)
+        getImage = get_image(priceData)
+        image, predict = pattern_detect(source=getImage)
+
+        with NamedTemporaryFile(delete=False, suffix=".png") as tmp:
+            image.save(tmp.name)
+
+            with ApiClient(configuration) as api_client:
+                line_bot_api = MessagingApi(api_client)
+                line_bot_api.reply_message_with_http_info(
+                    ReplyMessageRequest(
+                        reply_token=event.reply_token,
+                        messages=[
+                            TextMessage(text=str(predict)),
+                            ImageMessage(original_content_url=f"file://{tmp.name}", preview_image_url=f"file://{tmp.name}")
+                        ]
+                    )
+                )
+                
+    except Exception:
+        start_word = ['อุ๊ปส​์!','Ops!']
+        response_word = random.choice(start_word) + " ระบบเกิดข้อผิดพลาด โปรดลองใหม่ภายหลัง 😵‍💫"
+        with ApiClient(configuration) as api_client:
+            line_bot_api = MessagingApi(api_client)
+            line_bot_api.reply_message_with_http_info(
+                ReplyMessageRequest(
+                    reply_token=event.reply_token,
+                    messages=[TextMessage(text=response_word)]
+                )
+            )
+
 
     # bytes_io = BytesIO()
     # image.save(bytes_io, format="png")
