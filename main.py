@@ -143,7 +143,16 @@ def handle_message(event):
                     messages=[TextMessage(text=response_word)]
                 )
             )
-
+    waitingMessage = ["รอสักครู่ระบบกำลังประมวลผล 🫠", "ระบบกำลังประมวลผล 🫡"]
+    additional_message = random.choice(waitingMessage)
+    with ApiClient(configuration) as api_client:
+        line_bot_api = MessagingApi(api_client)
+        line_bot_api.reply_message_with_http_info(
+            ReplyMessageRequest(
+                reply_token=event.reply_token,
+                messages=[TextMessage(text=additional_message)]
+            )
+        )
 
     try:
         priceData = price_data(ticker=sym, start_date=start, end_date=end, timeframe=tf)
