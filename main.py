@@ -88,22 +88,23 @@ messaging_api = MessagingApi(api_client)
     
 #     return 'OK'
 
+
 @app.post("/callback")
 async def callback(request: Request):
-    body = await request.body()
-    body_str = body.decode("utf-8")
-    signature = request.headers['X-Line-Signature']
-    
-    # Compute HMAC-SHA256 digest
-    hash = hmac.new(channel_secret.encode('utf-8'), body, hashlib.sha256).digest()
-    computed_signature = base64.b64encode(hash).decode()
+    # get X-Line-Signature header value
+    signature = request.headers.get('X-Line-Signature', '')
 
-    # Compare X-Line-Signature with the computed signature
-    if signature != computed_signature:
-        raise HTTPException(status_code=400, detail="Invalid signature")
-    
-    # Process the request here after validating the signature...
-    
+    # get request body as text
+    body = await request.body()
+    body_str = body.decode('utf-8')
+
+    # handle webhook body
+    try:
+        handler.handle(body_str, signature)
+    except InvalidSignatureError:
+        print("Invalid signature. Please check your channel access token/channel secret.")
+        return 'Invalid signature'
+
     return 'OK'
 
 # function for create tmp dir for download content
@@ -122,26 +123,37 @@ def make_static_tmp_dir():
         else:
             raise
 
-@handler.add(MessageEvent, message=TextMessage)
+@handler.add(MessageEvent, message=TextMessageContent)
 def handle_message(event):
-    
-    ## event.message.text คือข้อความที่เขาพิมพ์มา
-    text = event.message.text
-    try:
-        words_list = text.split(", ")
-        sym = words_list[0].upper()
-        start = words_list[1]
-        end = words_list[2]
-        tf = words_list[3]
-    except Exception:
-        start_word = ['สวัสดีหัวไหล่ ','Hello There']
-        response_word = random.choice(start_word) + "😎 ส่งข้อความเข้ามารูปแบบดังนี้ aapl, 2023-09-01, 2023-10-01, 1h"
-        messaging_api.reply_message(
+    with ApiClient(configuration) as api_client:
+        line_bot_api = MessagingApi(api_client)
+        line_bot_api.reply_message_with_http_info(
             ReplyMessageRequest(
                 reply_token=event.reply_token,
-                messages=[TextMessage(text=response_word)]
+                messages=[TextMessage(text=event.message.text)]
             )
         )
+
+# @handler.add(MessageEvent, message=TextMessageContent)
+# def handle_message(event):
+    
+    ## event.message.text คือข้อความที่เขาพิมพ์มา
+    # text = event.message.text
+    # try:
+    #     words_list = text.split(", ")
+    #     sym = words_list[0].upper()
+    #     start = words_list[1]
+    #     end = words_list[2]
+    #     tf = words_list[3]
+    # except Exception:
+    #     start_word = ['สวัสดีหัวไหล่ ','Hello There']
+    #     response_word = random.choice(start_word) + "😎 ส่งข้อความเข้ามารูปแบบดังนี้ aapl, 2023-09-01, 2023-10-01, 1h"
+    #     messaging_api.reply_message(
+    #         ReplyMessageRequest(
+    #             reply_token=event.reply_token,
+    #             messages=[TextMessage(text=response_word)]
+    #         )
+    #     )
         # with ApiClient(configuration) as api_clients:
         #     line_bot_api = MessagingApi(api_clients)
         #     messages = [TextMessage(text=response_word)]
@@ -152,19 +164,19 @@ def handle_message(event):
         #         )
         #     )
             
-    try:
-        priceData = price_data(ticker=sym, start_date=start, end_date=end, timeframe=tf)
-        getImage = get_image(priceData)
-        image, predict = pattern_detect(source=getImage)
-    except Exception:
-        start_word = ['อุ๊ปส​์!','Ops!']
-        response_word = random.choice(start_word) + " ระบบเกิดข้อผิดพลาด โปรดลองใหม่ภายหลัง 😵‍💫"
-        messaging_api.reply_message(
-            ReplyMessageRequest(
-                reply_token=event.reply_token,
-                messages=[TextMessage(text=response_word)]
-            )
-        )
+    # try:
+    #     priceData = price_data(ticker=sym, start_date=start, end_date=end, timeframe=tf)
+    #     getImage = get_image(priceData)
+    #     image, predict = pattern_detect(source=getImage)
+    # except Exception:
+    #     start_word = ['อุ๊ปส​์!','Ops!']
+    #     response_word = random.choice(start_word) + " ระบบเกิดข้อผิดพลาด โปรดลองใหม่ภายหลัง 😵‍💫"
+    #     messaging_api.reply_message(
+    #         ReplyMessageRequest(
+    #             reply_token=event.reply_token,
+    #             messages=[TextMessage(text=response_word)]
+    #         )
+    #     )
         # with ApiClient(configuration) as api_clients:
         #     line_bot_api = MessagingApi(api_clients)
         #     messages = [TextMessage(text=response_word)]
@@ -178,16 +190,16 @@ def handle_message(event):
     # bytes_io = BytesIO()
     # image.save(bytes_io, format="png")
 
-    pattern = predict[0]["class"]
-    confidence = round(float(predict[0]["conf"]), 2)
+    # pattern = predict[0]["class"]
+    # confidence = round(float(predict[0]["conf"]), 2)
 
-    results =  {"class" : pattern, "conf" : confidence }
+    # results =  {"class" : pattern, "conf" : confidence }
 
     # try:
-    with tempfile.NamedTemporaryFile(dir=static_tmp_path, prefix="png" + '-', delete=False) as tf:
+    # with tempfile.NamedTemporaryFile(dir=static_tmp_path, prefix="png" + '-', delete=False) as tf:
         # Convert PIL Image to bytes and write to temporary file
-        image.save(tf, format="PNG")
-        tempfile_path = tf.name
+        # image.save(tf, format="PNG")
+        # tempfile_path = tf.name
 
         # content = bytes_io.getvalue()
         # with tempfile.NamedTemporaryFile(dir=static_tmp_path, prefix="png" + '-', delete=False) as tf:
@@ -195,18 +207,18 @@ def handle_message(event):
         #         tf.write(chunk)
         #     tempfile_path = tf.name
 
-    dist_path = tempfile_path + '.' + "png"
-    os.rename(tempfile_path, dist_path)
+    # dist_path = tempfile_path + '.' + "png"
+    # os.rename(tempfile_path, dist_path)
 
     # Read the image using OpenCV
-    im = cv2.imread(dist_path)
-    im0 = im.copy()
+    # im = cv2.imread(dist_path)
+    # im0 = im.copy()
 
-    save_path = str(save_dir + os.path.basename(tempfile_path) + '_result.' + "png")
-    cv2.imwrite(save_path, im0)
+    # save_path = str(save_dir + os.path.basename(tempfile_path) + '_result.' + "png")
+    # cv2.imwrite(save_path, im0)
 
     # Assuming Request is an imported class or object
-    url = Request.url_for('/', save_path)
+    # url = Request.url_for('/', save_path)
 
     #url = request.url_root + '/' + save_path
 
@@ -218,20 +230,20 @@ def handle_message(event):
     # cv2.imwrite(save_path, im0)
 
     # url = Request.url_for(save_path) #+ '/' + save_path
-    with ApiClient(configuration) as api_clients:
-        line_bot_api = MessagingApi(api_clients)
-        text_message = TextMessage(text='Object detection result:')
+    # with ApiClient(configuration) as api_clients:
+    #     line_bot_api = MessagingApi(api_clients)
+    #     text_message = TextMessage(text='Object detection result:')
     
-        # Assuming ImageMessage expects a single URL argument
-        image_message = ImageMessage(originalContentUrl=url, previewImageUrl=url)
+    #     # Assuming ImageMessage expects a single URL argument
+    #     image_message = ImageMessage(originalContentUrl=url, previewImageUrl=url)
         
-        messages = [text_message, image_message]
-        line_bot_api.reply_message_with_http_info(
-            ReplyMessageRequest(
-                replyToken= event.reply_token,
-                messages= messages
-            )
-        )
+    #     messages = [text_message, image_message]
+    #     line_bot_api.reply_message_with_http_info(
+    #         ReplyMessageRequest(
+    #             replyToken= event.reply_token,
+    #             messages= messages
+    #         )
+    #     )
         # line_bot_api.reply_message(
         #     ReplyMessageRequest(
         #         event.reply_token, 
@@ -255,7 +267,7 @@ def handle_message(event):
     #         )
 
 # create tmp dir for download content
-make_static_tmp_dir()
+# make_static_tmp_dir()
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8000, debug=True)
