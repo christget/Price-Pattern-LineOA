@@ -72,8 +72,9 @@ channel_secret = "bd52780d26db0e6e185cbe5ce70f04f3"
 # channel_access_token = os.getenv("CHANNEL_ACCESS_TOKEN")
 
 configuration = Configuration(access_token=channel_access_token)
+api_client = ApiClient(configuration)
 handler = WebhookHandler(channel_secret)
-
+messaging_api = MessagingApi(api_client)
 
 # @app.post("/callback")
 # async def callback(request: Request):
@@ -137,7 +138,7 @@ def handle_message(event):
         response_word = random.choice(start_word) + "😎 ส่งข้อความเข้ามารูปแบบดังนี้ aapl, 2023-09-01, 2023-10-01, 1h"
         with ApiClient(configuration) as api_clients:
             line_bot_api = MessagingApi(api_clients)
-            messages = [TextMessage(text=event.response_word.text)]
+            messages = [TextMessage(text=response_word)]
             line_bot_api.reply_message_with_http_info(
                 ReplyMessageRequest(
                     replyToken= event.reply_token,
@@ -154,7 +155,7 @@ def handle_message(event):
         response_word = random.choice(start_word) + " ระบบเกิดข้อผิดพลาด โปรดลองใหม่ภายหลัง 😵‍💫"
         with ApiClient(configuration) as api_clients:
             line_bot_api = MessagingApi(api_clients)
-            messages = [TextMessage(text=event.response_word.text)]
+            messages = [TextMessage(text=response_word)]
             line_bot_api.reply_message_with_http_info(
                 ReplyMessageRequest(
                     replyToken= event.reply_token,
