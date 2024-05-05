@@ -121,8 +121,8 @@ def make_static_tmp_dir():
         else:
             raise
 
-@handler.add(MessageEvent, message=TextMessageContent)
-def message_text(event):
+@handler.add(MessageEvent, message=TextMessage)
+def handle_message(event):
     
     ## event.message.text คือข้อความที่เขาพิมพ์มา
     text = event.message.text
@@ -138,7 +138,7 @@ def message_text(event):
         with ApiClient(configuration) as api_clients:
             line_bot_api = MessagingApi(api_clients)
             messages = [TextMessage(text=response_word)]
-            line_bot_api.reply_message(
+            line_bot_api.reply_message_with_http_info(
                 ReplyMessageRequest(
                     replyToken= event.reply_token,
                     messages= messages
@@ -155,7 +155,7 @@ def message_text(event):
         with ApiClient(configuration) as api_clients:
             line_bot_api = MessagingApi(api_clients)
             messages = [TextMessage(text=response_word)]
-            line_bot_api.reply_message(
+            line_bot_api.reply_message_with_http_info(
                 ReplyMessageRequest(
                     replyToken= event.reply_token,
                     messages= messages
@@ -213,7 +213,7 @@ def message_text(event):
         image_message = ImageMessage(originalContentUrl=url, previewImageUrl=url)
         
         messages = [text_message, image_message]
-        line_bot_api.reply_message(
+        line_bot_api.reply_message_with_http_info(
             ReplyMessageRequest(
                 replyToken= event.reply_token,
                 messages= messages
