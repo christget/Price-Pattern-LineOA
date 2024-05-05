@@ -164,8 +164,9 @@ def handle_message(event):
                         ]
                     )
                 )
-                
-    except Exception:
+
+    except Exception as e:
+        print(e)
         start_word = ['อุ๊ปส​์!','Ops!']
         response_word = random.choice(start_word) + " ระบบเกิดข้อผิดพลาด โปรดลองใหม่ภายหลัง 😵‍💫"
         with ApiClient(configuration) as api_client:
