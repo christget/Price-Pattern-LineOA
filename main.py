@@ -76,17 +76,6 @@ api_client = ApiClient(configuration)
 handler = WebhookHandler(channel_secret)
 messaging_api = MessagingApi(api_client)
 
-# @app.post("/callback")
-# async def callback(request: Request):
-#     body = await request.body()
-#     signature = request.headers['X-Line-Signature']
-    
-#     try:
-#         handler.handle(body.decode("utf-8"), signature)
-#     except InvalidSignatureError as e:
-#         raise HTTPException(status_code=400, detail="Invalid signature: %s" % e.message)
-    
-#     return 'OK'
 
 
 @app.post("/callback")
@@ -107,22 +96,6 @@ async def callback(request: Request):
 
     return 'OK'
 
-# function for create tmp dir for download content
-# static_tmp_path = os.path.join(os.path.dirname(__file__), 'static', 'tmp')
-
-# Directories
-# save_dir = 'static/tmp/'
-
-# function for create tmp dir for download content
-# def make_static_tmp_dir():
-#     try:
-#         os.makedirs(static_tmp_path)
-#     except OSError as exc:
-#         if exc.errno == errno.EEXIST and os.path.isdir(static_tmp_path):
-#             pass
-#         else:
-#             raise
-
 @handler.add(MessageEvent, message=TextMessageContent)
 def handle_message(event):
     text = event.message.text
@@ -133,18 +106,38 @@ def handle_message(event):
         end = words_list[2]
         tf = words_list[3]
     except Exception:
-        start_word = ['สวัสดีหัวไหล่ ','Hello There']
-        response_word = random.choice(start_word) + "😎 ส่งข้อความเข้ามารูปแบบดังนี้ aapl, 2023-09-01, 2023-10-01, 1h"
-        with ApiClient(configuration) as api_client:
-            line_bot_api = MessagingApi(api_client)
-            line_bot_api.reply_message_with_http_info(
-                ReplyMessageRequest(
-                    reply_token=event.reply_token,
-                    messages=[TextMessage(text=response_word)]
-                )
+        handle_default_message(event)
+        return
+
+    handle_waiting_message(event)
+
+    try:
+        priceData = price_data(ticker=sym, start_date=start, end_date=end, timeframe=tf)
+        getImage = get_image(priceData)
+        image, predict = pattern_detect(source=getImage)
+
+        handle_prediction_result(event, predict)
+    except Exception as e:
+        print(e)
+        handle_error_message(event)
+
+def handle_default_message(event):
+    start_word = ['สวัสดีหัวไหล่ ', 'Hello There']
+    response_word = random.choice(start_word) + "😎 ส่งข้อความเข้ามารูปแบบดังนี้ aapl, 2023-09-01, 2023-10-01, 1h"
+
+    with ApiClient(configuration) as api_client:
+        line_bot_api = MessagingApi(api_client)
+        line_bot_api.reply_message_with_http_info(
+            ReplyMessageRequest(
+                reply_token=event.reply_token,
+                messages=[TextMessage(text=response_word)]
             )
+        )
+
+def handle_waiting_message(event):
     waitingMessage = ["รอสักครู่ระบบกำลังประมวลผล 🫠", "ระบบกำลังประมวลผล 🫡"]
     additional_message = random.choice(waitingMessage)
+
     with ApiClient(configuration) as api_client:
         line_bot_api = MessagingApi(api_client)
         line_bot_api.reply_message_with_http_info(
@@ -154,38 +147,91 @@ def handle_message(event):
             )
         )
 
-    try:
-        priceData = price_data(ticker=sym, start_date=start, end_date=end, timeframe=tf)
-        getImage = get_image(priceData)
-        image, predict = pattern_detect(source=getImage)
-
-        # with NamedTemporaryFile(delete=False, suffix=".png") as tmp:
-        #     image.save(tmp.name)
-
-        with ApiClient(configuration) as api_client:
-            line_bot_api = MessagingApi(api_client)
-            line_bot_api.reply_message_with_http_info(
-                ReplyMessageRequest(
-                    reply_token=event.reply_token,
-                    messages=[
-                        TextMessage(text=str(predict)),
-                        #ImageMessage(original_content_url=f"file://{tmp.name}", preview_image_url=f"file://{tmp.name}")
-                    ]
-                )
+def handle_prediction_result(event, predict):
+    with ApiClient(configuration) as api_client:
+        line_bot_api = MessagingApi(api_client)
+        line_bot_api.reply_message_with_http_info(
+            ReplyMessageRequest(
+                reply_token=event.reply_token,
+                messages=[TextMessage(text=str(predict))]
             )
+        )
 
-    except Exception as e:
-        print(e)
-        start_word = ['อุ๊ปส​์!','Ops!']
-        response_word = random.choice(start_word) + " ระบบเกิดข้อผิดพลาด โปรดลองใหม่ภายหลัง 😵‍💫"
-        with ApiClient(configuration) as api_client:
-            line_bot_api = MessagingApi(api_client)
-            line_bot_api.reply_message_with_http_info(
-                ReplyMessageRequest(
-                    reply_token=event.reply_token,
-                    messages=[TextMessage(text=response_word)]
-                )
+def handle_error_message(event):
+    start_word = ['อุ๊ปส์!', 'Ops!']
+    response_word = random.choice(start_word) + " ระบบเกิดข้อผิดพลาด โปรดลองใหม่ภายหลัง 😵‍💫"
+
+    with ApiClient(configuration) as api_client:
+        line_bot_api = MessagingApi(api_client)
+        line_bot_api.reply_message_with_http_info(
+            ReplyMessageRequest(
+                reply_token=event.reply_token,
+                messages=[TextMessage(text=response_word)]
             )
+        )
+# @handler.add(MessageEvent, message=TextMessageContent)
+# def handle_message(event):
+#     text = event.message.text
+#     try:
+#         words_list = text.split(", ")
+#         sym = words_list[0].upper()
+#         start = words_list[1]
+#         end = words_list[2]
+#         tf = words_list[3]
+#     except Exception:
+#         start_word = ['สวัสดีหัวไหล่ ','Hello There']
+#         response_word = random.choice(start_word) + "😎 ส่งข้อความเข้ามารูปแบบดังนี้ aapl, 2023-09-01, 2023-10-01, 1h"
+#         with ApiClient(configuration) as api_client:
+#             line_bot_api = MessagingApi(api_client)
+#             line_bot_api.reply_message_with_http_info(
+#                 ReplyMessageRequest(
+#                     reply_token=event.reply_token,
+#                     messages=[TextMessage(text=response_word)]
+#                 )
+#             )
+#     waitingMessage = ["รอสักครู่ระบบกำลังประมวลผล 🫠", "ระบบกำลังประมวลผล 🫡"]
+#     additional_message = random.choice(waitingMessage)
+#     with ApiClient(configuration) as api_client:
+#         line_bot_api = MessagingApi(api_client)
+#         line_bot_api.reply_message_with_http_info(
+#             ReplyMessageRequest(
+#                 reply_token=event.reply_token,
+#                 messages=[TextMessage(text=additional_message)]
+#             )
+#         )
+
+#     try:
+#         priceData = price_data(ticker=sym, start_date=start, end_date=end, timeframe=tf)
+#         getImage = get_image(priceData)
+#         image, predict = pattern_detect(source=getImage)
+
+#         # with NamedTemporaryFile(delete=False, suffix=".png") as tmp:
+#         #     image.save(tmp.name)
+
+#         with ApiClient(configuration) as api_client:
+#             line_bot_api = MessagingApi(api_client)
+#             line_bot_api.reply_message_with_http_info(
+#                 ReplyMessageRequest(
+#                     reply_token=event.reply_token,
+#                     messages=[
+#                         TextMessage(text=str(predict)),
+#                         #ImageMessage(original_content_url=f"file://{tmp.name}", preview_image_url=f"file://{tmp.name}")
+#                     ]
+#                 )
+#             )
+
+#     except Exception as e:
+#         print(e)
+#         start_word = ['อุ๊ปส​์!','Ops!']
+#         response_word = random.choice(start_word) + " ระบบเกิดข้อผิดพลาด โปรดลองใหม่ภายหลัง 😵‍💫"
+#         with ApiClient(configuration) as api_client:
+#             line_bot_api = MessagingApi(api_client)
+#             line_bot_api.reply_message_with_http_info(
+#                 ReplyMessageRequest(
+#                     reply_token=event.reply_token,
+#                     messages=[TextMessage(text=response_word)]
+#                 )
+#             )
 
 
     # bytes_io = BytesIO()
