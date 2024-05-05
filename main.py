@@ -120,7 +120,7 @@ def handle_message(event):
         handle_prediction_result(user_id, predict)
     except Exception as e:
         print(e)
-        handle_error_message(event)
+        handle_error_message(user_id)
 
 def handle_default_message(event):
     start_word = ['สวัสดีหัวไหล่ ', 'Hello There']
