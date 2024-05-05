@@ -108,31 +108,42 @@ async def callback(request: Request):
     return 'OK'
 
 # function for create tmp dir for download content
-static_tmp_path = os.path.join(os.path.dirname(__file__), 'static', 'tmp')
+# static_tmp_path = os.path.join(os.path.dirname(__file__), 'static', 'tmp')
 
 # Directories
-save_dir = 'static/tmp/'
+# save_dir = 'static/tmp/'
 
 # function for create tmp dir for download content
-def make_static_tmp_dir():
-    try:
-        os.makedirs(static_tmp_path)
-    except OSError as exc:
-        if exc.errno == errno.EEXIST and os.path.isdir(static_tmp_path):
-            pass
-        else:
-            raise
+# def make_static_tmp_dir():
+#     try:
+#         os.makedirs(static_tmp_path)
+#     except OSError as exc:
+#         if exc.errno == errno.EEXIST and os.path.isdir(static_tmp_path):
+#             pass
+#         else:
+#             raise
 
 @handler.add(MessageEvent, message=TextMessageContent)
 def handle_message(event):
-    with ApiClient(configuration) as api_client:
-        line_bot_api = MessagingApi(api_client)
-        line_bot_api.reply_message_with_http_info(
-            ReplyMessageRequest(
-                reply_token=event.reply_token,
-                messages=[TextMessage(text=event.message.text)]
+    text = event.message.text
+    try:
+        words_list = text.split(", ")
+        sym = words_list[0].upper()
+        start = words_list[1]
+        end = words_list[2]
+        tf = words_list[3]
+    except Exception:
+        start_word = ['สวัสดีหัวไหล่ ','Hello There']
+        response_word = random.choice(start_word) + "😎 ส่งข้อความเข้ามารูปแบบดังนี้ aapl, 2023-09-01, 2023-10-01, 1h"
+
+        with ApiClient(configuration) as api_client:
+            line_bot_api = MessagingApi(api_client)
+            line_bot_api.reply_message_with_http_info(
+                ReplyMessageRequest(
+                    reply_token=event.reply_token,
+                    messages=[TextMessage(text=response_word)]
+                )
             )
-        )
 
 # @handler.add(MessageEvent, message=TextMessageContent)
 # def handle_message(event):
