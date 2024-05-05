@@ -150,20 +150,20 @@ def handle_message(event):
         getImage = get_image(priceData)
         image, predict = pattern_detect(source=getImage)
 
-        with NamedTemporaryFile(delete=False, suffix=".png") as tmp:
-            image.save(tmp.name)
+        # with NamedTemporaryFile(delete=False, suffix=".png") as tmp:
+        #     image.save(tmp.name)
 
-            with ApiClient(configuration) as api_client:
-                line_bot_api = MessagingApi(api_client)
-                line_bot_api.reply_message_with_http_info(
-                    ReplyMessageRequest(
-                        reply_token=event.reply_token,
-                        messages=[
-                            TextMessage(text=str(predict)),
-                            ImageMessage(original_content_url=f"file://{tmp.name}", preview_image_url=f"file://{tmp.name}")
-                        ]
-                    )
+        with ApiClient(configuration) as api_client:
+            line_bot_api = MessagingApi(api_client)
+            line_bot_api.reply_message_with_http_info(
+                ReplyMessageRequest(
+                    reply_token=event.reply_token,
+                    messages=[
+                        TextMessage(text=str(predict)),
+                        #ImageMessage(original_content_url=f"file://{tmp.name}", preview_image_url=f"file://{tmp.name}")
+                    ]
                 )
+            )
 
     except Exception as e:
         print(e)
