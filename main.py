@@ -126,12 +126,21 @@ def handle_default_message(event):
     start_word = ['สวัสดีหัวไหล่ ', 'Hello There']
     response_word = random.choice(start_word) + "😎 ส่งข้อความเข้ามารูปแบบดังนี้ aapl, 2023-09-01, 2023-10-01, 1h"
 
+    # with ApiClient(configuration) as api_client:
+    #     line_bot_api = MessagingApi(api_client)
+    #     line_bot_api.reply_message_with_http_info(
+    #         ReplyMessageRequest(
+    #             reply_token=event.reply_token,
+    #             messages=[TextMessage(text=response_word)]
+    #         )
+    #     )
+
     with ApiClient(configuration) as api_client:
         line_bot_api = MessagingApi(api_client)
         line_bot_api.reply_message_with_http_info(
             ReplyMessageRequest(
                 reply_token=event.reply_token,
-                messages=[TextMessage(text=response_word)]
+                messages=[ImageMessage(originalContentUrl= 'https://www.quickserv.co.th/texteditor/uploade/HTTP%20HTTPS-01.jpg', previewImageUrl= 'https://www.quickserv.co.th/texteditor/uploade/HTTP%20HTTPS-01.jpg')]
             )
         )
 
